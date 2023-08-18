@@ -4,7 +4,7 @@ import pandas as pd
 from config import DATA_SOURCE_PATH,SPLIT_DATA_PATH,SPLIT_DATA_PATH,STATIC_ITEM,DYNAMIC_ITEM,getVendor,getCpuType,logs_transaction
 import os, math
 from multiprocessing import Process
-
+import moxing as mox
 
     
 def mergeDataSet():
@@ -45,6 +45,7 @@ def genDynamicInfo(df):
         for log in logs:
             dynamicDf = dynamicDf.append(log,ignore_index=True)
     dynamicDf = dynamicDf.sort_values(by=['TimeStamp']).reset_index(drop=True)
+    dynamicDf = dynamicDf[DYNAMIC_ITEM]
     return dynamicDf
 
 def parseDIMM(dfList):
