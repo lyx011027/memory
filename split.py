@@ -1,33 +1,57 @@
 # 按 dimm_sn 号切分 error event 数据集，并保存出现 error 的 dimm 静态信息
 
 import pandas as pd
-from config import DATA_SOURCE_PATH,SPLIT_DATA_PATH,SPLIT_DATA_PATH,STATIC_ITEM,DYNAMIC_ITEM,getVendor,getCpuType,logs_transaction
+from config import *
 import os, math
 from multiprocessing import Process
-import moxing as mox
+# import moxing as mox
 
+
+def getDIMMList():
+    snDf = pd.DataFrame()
     
-def mergeDataSet():
+    # fileSet = mox.file.walk(DATA_SOURCE_PATH)
+    
+    fileSet = os.walk(DATA_SOURCE_PATH)
+    
+    for root ,_, files in fileSet:
+        for f in files:
+            # with mox.file.File(os.path.join(root,f), 'rb') as fn:
+            
+            with open(os.path.join(root,f), 'rb') as fn:
+                
+                df = pd.read_csv(fn, sep=';') 
+
+                snDf = pd.concat([snDf, df['SN']]).drop_duplicates()
+    return snDf[0].tolist()
+def getLogInDIMMList(dimmList):
     mergedDf =  pd.DataFrame()
-    fileSet = mox.file.walk(DATA_SOURCE_PATH)
+    # fileSet = mox.file.walk(DATA_SOURCE_PATH)
     
-    # fileSet = os.walk(DATA_SOURCE_PATH)
+    fileSet = os.walk(DATA_SOURCE_PATH)
     
     for root ,_, files in fileSet:
     
         for f in files:
-            with mox.file.File(os.path.join(root,f), 'rb') as fn:
+            # with mox.file.File(os.path.join(root,f), 'rb') as fn:
             
-            # with open(os.path.join(root,f), 'rb') as fn:
+            with open(os.path.join(root,f), 'rb') as fn:
                 
-                df = pd.read_csv(fn, sep=';')  
+                df = pd.read_csv(fn, sep=';')
+                df = df[df['SN'].isin(dimmList)] 
             
             if mergedDf.empty:
                 mergedDf = df
                 continue
             mergedDf = pd.concat([mergedDf, df])
-    print("read finish")
     return mergedDf
+def main():
+    dimmList = getDIMMList()
+    subListSize = math.ceil(len(dimmList) / BATCH_NUM)
+    for i in range(BATCH_NUM):
+        subDimmList = dimmList[i*subListSize:(i + 1)*subListSize]
+        subDf = getLogInDIMMList(subDimmList)
+        splitByDIMM(subDf)
 
 
 def genStaticInfo(df):
@@ -64,6 +88,7 @@ def parseDIMM(dfList):
         dynamicDf.to_csv(os.path.join(subPath, sn+"_error.csv"), index=False)
         # break
 def splitByDIMM(df):
+    
     dfList = list(df.groupby(by='SN'))
     if not os.path.exists(SPLIT_DATA_PATH):
         os.makedirs(SPLIT_DATA_PATH)
@@ -77,10 +102,9 @@ def splitByDIMM(df):
     for p in processList:
         p.start()
 
-        
     for p in processList:
         p.join()
-        # break
+
 print("split dimm")
-df = mergeDataSet()
-splitByDIMM(df)
+
+main()

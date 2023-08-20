@@ -3,6 +3,9 @@ import json
 # 存放原始数据的文件夹
 DATA_SOURCE_PATH = "/home/hw-admin/yixuan/ProjectTest/data"
 
+# split 执行的 batch 数量，出现OOM时调大
+BATCH_NUM = 10
+
 # 存放生成数据集的路径
 DATA_SET_PATH = "data_set"
 # 存放训练得到的数据集
