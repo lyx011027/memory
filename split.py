@@ -2,42 +2,123 @@
 
 import pandas as pd
 from config import *
-import os, math
-from multiprocessing import Process
-# import moxing as mox
+import os, math, sys
+from multiprocessing import Process, Queue
+import csv
+import moxing as mox
 
 
+# 遍历路径，得到所有dimm的sn号列表
 def getDIMMList():
-    snDf = pd.DataFrame()
+    if not os.path.exists(SPLIT_DATA_PATH):
+        os.makedirs(SPLIT_DATA_PATH)
+    snMap = {}
     
-    # fileSet = mox.file.walk(DATA_SOURCE_PATH)
+    fileSet = mox.file.walk(DATA_SOURCE_PATH)
     
-    fileSet = os.walk(DATA_SOURCE_PATH)
+    # fileSet = os.walk(DATA_SOURCE_PATH)
     
     for root ,_, files in fileSet:
         for f in files:
-            # with mox.file.File(os.path.join(root,f), 'rb') as fn:
+            with mox.file.File(os.path.join(root,f), 'rb') as fn:
             
-            with open(os.path.join(root,f), 'rb') as fn:
+            # with open(os.path.join(root,f), 'rb') as fn:
                 
                 df = pd.read_csv(fn, sep=';') 
+                for index, row in df.iterrows():
+                    sn = row['SN']
+                    if sn not in snMap:
+                        snMap[sn] = True
+                        subPath = os.path.join(SPLIT_DATA_PATH, sn)
+                        if not os.path.exists(subPath):
+                            os.mkdir(subPath)
+                        # 解析静态信息
+                        
+                        staticDf = pd.DataFrame(columns=STATIC_ITEM)
+                        staticRow = row[STATIC_ITEM]
+                        staticRow['Manufacturer'] = getVendor(staticRow['Manufacturer'])
+                        staticRow['CpuInfo'] = getCpuType(staticRow['CpuInfo'])
+                        # staticDf = staticDf.append(staticRow)
+                        staticDf.loc[0] = staticRow
+                        staticDf.to_csv(os.path.join(subPath, sn+"_static.csv"), index=False)
+                        
+    return list(snMap.keys())
 
-                snDf = pd.concat([snDf, df['SN']]).drop_duplicates()
-    return snDf[0].tolist()
-def getLogInDIMMList(dimmList):
-    mergedDf =  pd.DataFrame()
-    # fileSet = mox.file.walk(DATA_SOURCE_PATH)
+# 多线程读取属于dimmList中的dimm数据，并聚合成单个dataframe
+def getLogInDIMMListMultipro(dimmList):
     
-    fileSet = os.walk(DATA_SOURCE_PATH)
+    fileList = []
+    
+    fileSet = mox.file.walk(DATA_SOURCE_PATH)
+    
+    # fileSet = os.walk(DATA_SOURCE_PATH)
     
     for root ,_, files in fileSet:
     
         for f in files:
-            # with mox.file.File(os.path.join(root,f), 'rb') as fn:
+            fileList.append(os.path.join(root,f))
             
-            with open(os.path.join(root,f), 'rb') as fn:
+    q = Queue()        
+    
+    processList = []
+    cpuCount = os.cpu_count() * 2
+    subListSize = math.ceil(len(fileList) / cpuCount)
+    for i in range(cpuCount):
+        subFile = fileList[i*subListSize:(i + 1)*subListSize]
+        processList.append(Process(target=getLogInFileList, args=([q, subFile,dimmList])))
+        
+    for p in processList:
+        p.start()
+    mergedDf = pd.DataFrame()
+    length = len(processList)
+    subDfList = []
+    while True:
+        if length == len(subDfList):
+            break
+        subDfList.append(q.get())
+
+    mergedDf = pd.concat(subDfList)
+        
+        
+    for p in processList:
+        p.join()
+    return mergedDf
+        
+# 读取fileList中属于dimmList的数据，并聚合成单个dataframe
+def getLogInFileList(q, fileList, dimmList):
+    mergedDf =  pd.DataFrame()
+
+    for f in fileList:
+        with mox.file.File(f, 'rb') as fn:
+        
+        # with open(f, 'rb') as fn:
+            
+            df = pd.read_csv(fn, sep=';')[['SN', 'Log']]
+            df = df[df['SN'].isin(dimmList)] 
+        
+        if mergedDf.empty:
+            mergedDf = df
+            continue
+        mergedDf = pd.concat([mergedDf, df])
+    q.put(mergedDf)
+
+# 单线程读取属于dimmList中的dimm数据，并聚合成单个dataframe
+def getLogInDIMMList(dimmList):
+    mergedDf =  pd.DataFrame()
+    
+    fileSet = mox.file.walk(DATA_SOURCE_PATH)
+    
+    # fileSet = os.walk(DATA_SOURCE_PATH)
+    
+    for root ,_, files in fileSet:
+    
+        for f in files:
+            
+            with mox.file.File(os.path.join(root,f), 'rb') as fn:
+            
+            # with open(os.path.join(root,f), 'rb') as fn:
                 
-                df = pd.read_csv(fn, sep=';')
+                df = pd.read_csv(fn, sep=';')[['SN', 'Log']]
                 df = df[df['SN'].isin(dimmList)] 
             
             if mergedDf.empty:
@@ -45,23 +126,19 @@ def getLogInDIMMList(dimmList):
                 continue
             mergedDf = pd.concat([mergedDf, df])
     return mergedDf
+
+# 主函数
 def main():
     dimmList = getDIMMList()
+    print("dimm number = {}".format(len(dimmList)))
     subListSize = math.ceil(len(dimmList) / BATCH_NUM)
     for i in range(BATCH_NUM):
+        print("process batch {}".format(i))
         subDimmList = dimmList[i*subListSize:(i + 1)*subListSize]
-        subDf = getLogInDIMMList(subDimmList)
+        subDf = getLogInDIMMListMultipro(subDimmList)
         splitByDIMM(subDf)
 
-
-def genStaticInfo(df):
-    staticDf = pd.DataFrame(columns=STATIC_ITEM)
-    row = df.loc[0,STATIC_ITEM]
-    row['Manufacturer'] = getVendor(row['Manufacturer'])
-    row['CpuInfo'] = getCpuType(row['CpuInfo'])
-    staticDf = staticDf.append(row,ignore_index=True)
-    return staticDf
-    
+# 解析logs   
 def genDynamicInfo(df):
     dynamicDf = pd.DataFrame(columns=DYNAMIC_ITEM)
     for index, row in df.iterrows():
@@ -72,6 +149,7 @@ def genDynamicInfo(df):
     dynamicDf = dynamicDf[DYNAMIC_ITEM]
     return dynamicDf
 
+# 解析dimm的error log，并保存
 def parseDIMM(dfList):
     for df in dfList:
         sn = df[0]
@@ -79,19 +157,16 @@ def parseDIMM(dfList):
         subPath = os.path.join(SPLIT_DATA_PATH, sn)
         if not os.path.exists(subPath):
             os.mkdir(subPath)
-        # 解析静态信息
-        staticDf = genStaticInfo(subdf)
-        staticDf.to_csv(os.path.join(subPath, sn+"_static.csv"), index=False)
-        
+
         # 解析动态信息
         dynamicDf = genDynamicInfo(subdf)
         dynamicDf.to_csv(os.path.join(subPath, sn+"_error.csv"), index=False)
         # break
+
+# 按dimm sn号切分数据，并解析
 def splitByDIMM(df):
     
     dfList = list(df.groupby(by='SN'))
-    if not os.path.exists(SPLIT_DATA_PATH):
-        os.makedirs(SPLIT_DATA_PATH)
     processList = []
     cpuCount = os.cpu_count() * 2
     subListSize = math.ceil(len(dfList) / cpuCount)
@@ -106,5 +181,11 @@ def splitByDIMM(df):
         p.join()
 
 print("split dimm")
+# 命令行输入
+DATA_SOURCE_PATH, BATCH_NUM = sys.argv[1], int(sys.argv[2])
 
+if not os.path.exists(DATA_SOURCE_PATH):
+    print("data path is not existed")
+    exit()
+print("source path = {}, batch number = {}".format(DATA_SOURCE_PATH, BATCH_NUM))
 main()

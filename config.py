@@ -4,7 +4,7 @@ import json
 DATA_SOURCE_PATH = "/home/hw-admin/yixuan/ProjectTest/data"
 
 # split 执行的 batch 数量，出现OOM时调大
-BATCH_NUM = 10
+BATCH_NUM = 1
 
 # 存放生成数据集的路径
 DATA_SET_PATH = "data_set"
@@ -43,7 +43,6 @@ def logs_transaction(logs):
         log += '}'
         log = json.loads(log)
         log['TimeStamp'] = datetime.fromtimestamp(log['TimeStamp'])
-        log["Type"] = int(log["Type"])
         transaction_log.append(log)
         
     return transaction_log
