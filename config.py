@@ -26,6 +26,8 @@ vendors = {
     
 }
 def getVendor(vendor):
+    if vendor not in vendors:
+        return -1
     return vendors[vendor]
     
 def getPosition(row):

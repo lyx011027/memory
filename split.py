@@ -20,6 +20,8 @@ def getDIMMList():
     
     for root ,_, files in fileSet:
         for f in files:
+            if not f.endswith('csv'):
+                continue
             with mox.file.File(os.path.join(root,f), 'rb') as fn:
             
             # with open(os.path.join(root,f), 'rb') as fn:
@@ -56,6 +58,8 @@ def getLogInDIMMListMultipro(dimmList):
     for root ,_, files in fileSet:
     
         for f in files:
+            if not f.endswith('csv'):
+                continue
             fileList.append(os.path.join(root,f))
             
     q = Queue()        
@@ -89,6 +93,8 @@ def getLogInFileList(q, fileList, dimmList):
     mergedDf =  pd.DataFrame()
 
     for f in fileList:
+        if not f.endswith('csv'):
+                continue
         with mox.file.File(f, 'rb') as fn:
         
         # with open(f, 'rb') as fn:
@@ -113,7 +119,8 @@ def getLogInDIMMList(dimmList):
     for root ,_, files in fileSet:
     
         for f in files:
-            
+            if not f.endswith('csv'):
+                continue
             with mox.file.File(os.path.join(root,f), 'rb') as fn:
             
             # with open(os.path.join(root,f), 'rb') as fn:
@@ -184,8 +191,5 @@ print("split dimm")
 # 命令行输入
 DATA_SOURCE_PATH, BATCH_NUM = sys.argv[1], int(sys.argv[2])
 
-if not os.path.exists(DATA_SOURCE_PATH):
-    print("data path is not existed")
-    exit()
 print("source path = {}, batch number = {}".format(DATA_SOURCE_PATH, BATCH_NUM))
 main()
