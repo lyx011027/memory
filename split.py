@@ -63,7 +63,6 @@ def getLogInDIMMListMultipro(dimmList):
             fileList.append(os.path.join(root,f))
             
     q = Queue()        
-    
     processList = []
     cpuCount = os.cpu_count() * 2
     subListSize = math.ceil(len(fileList) / cpuCount)

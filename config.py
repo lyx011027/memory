@@ -12,7 +12,10 @@ DATA_SET_PATH = "data_set"
 MODEL_PATH = "model"
 # 存放R-P曲线图的文件夹
 PIC_PATH = "pic"
+# 切分后的文件
 SPLIT_DATA_PATH = "split"
+# parse Log 后的文件路径 
+PARSE_DATA_PATH = 'parse'
 # 提前预测时间，单位为minute
 AHEAD_TIME_List = [timedelta(seconds=15),timedelta(minutes=1),timedelta(minutes=15),timedelta(minutes=30),timedelta(minutes=60)]
 # 按batch生成数据集时，batch中dimm的数量，如果使用sample_batch.py生成数据集时发生OOM，则降低该值
@@ -32,7 +35,7 @@ def getVendor(vendor):
     
 def getPosition(row):
     return 16*row['CpuId'] + 8*row['DimmId'] + row['ChannelId']
-
+# []log-> logs , logs -> []log
 # 将str形式的log转为[]json
 def logs_transaction(logs):
     transaction_log =[]

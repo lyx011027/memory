@@ -2,4 +2,4 @@
 
 # 测试流程
 
-1. 运行 `bash run.sh 数据路径 批次数`
+1. 运行 `bash parse.sh 数据路径`
