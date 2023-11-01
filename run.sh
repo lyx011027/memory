@@ -14,6 +14,6 @@ filename="$1"
 batchnum="$2"
 
 python3 split.py "$filename" "$batchnum"
-python3 sample_multipro.py
-python3 rf_multipro.py
+# python3 sample_multipro.py
+# python3 rf_multipro.py
 
