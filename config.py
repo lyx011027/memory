@@ -21,17 +21,7 @@ AHEAD_TIME_List = [timedelta(seconds=15),timedelta(minutes=1),timedelta(minutes=
 # 按batch生成数据集时，batch中dimm的数量，如果使用sample_batch.py生成数据集时发生OOM，则降低该值
 BATCH_SIZE = 10000
 MAXIMUM_RATIO = 100
-vendors = {
-    'Samsung':0,
-    'Hynix':1,
-    'Micron':2,
-    'Ramaxel':3
-    
-}
-def getVendor(vendor):
-    if vendor not in vendors:
-        return -1
-    return vendors[vendor]
+
     
 def getPosition(row):
     return 16*row['CpuId'] + 8*row['DimmId'] + row['ChannelId']

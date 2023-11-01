@@ -8,6 +8,7 @@ import csv
 import moxing as mox
 
 
+
 # 遍历路径，得到所有dimm的sn号列表
 def getDIMMList():
     if not os.path.exists(SPLIT_DATA_PATH):
@@ -38,9 +39,8 @@ def getDIMMList():
                         
                         staticDf = pd.DataFrame(columns=STATIC_ITEM)
                         staticRow = row[STATIC_ITEM]
-                        staticRow['Manufacturer'] = getVendor(staticRow['Manufacturer'])
                         staticRow['CpuInfo'] = getCpuType(staticRow['CpuInfo'])
-                        # staticDf = staticDf.append(staticRow)
+
                         staticDf.loc[0] = staticRow
                         staticDf.to_csv(os.path.join(subPath, sn+"_static.csv"), index=False)
                         
@@ -143,6 +143,7 @@ def main():
         subDimmList = dimmList[i*subListSize:(i + 1)*subListSize]
         subDf = getLogInDIMMListMultipro(subDimmList)
         splitByDIMM(subDf)
+        print("batch {} finished".format(i))
 
 # 解析logs   
 def genDynamicInfo(df):
@@ -171,7 +172,7 @@ def parseDIMM(dfList):
 
 # 按dimm sn号切分数据，并解析
 def splitByDIMM(df):
-    
+    q = Queue()
     dfList = list(df.groupby(by='SN'))
     processList = []
     cpuCount = os.cpu_count() * 2
@@ -179,13 +180,16 @@ def splitByDIMM(df):
     for i in range(cpuCount):
         subDimm = dfList[i*subListSize:(i + 1)*subListSize]
         processList.append(Process(target=parseDIMM, args=([subDimm])))
-        
+    
+
     for p in processList:
         p.start()
 
     for p in processList:
         p.join()
+        
 
+    
 print("split dimm")
 # 命令行输入
 DATA_SOURCE_PATH, BATCH_NUM = sys.argv[1], int(sys.argv[2])
