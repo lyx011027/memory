@@ -5,9 +5,17 @@ from config import *
 import os, math, sys
 from multiprocessing import Process, Queue
 import csv
-import moxing as mox
 
 
+usingMox = True
+
+if usingMox:
+    import moxing as mox
+    openFileFn = mox.file.File
+    walkFileFn =  mox.file.walk
+else:
+    openFileFn = open
+    walkFileFn =  os.walk
 
 # 遍历路径，得到所有dimm的sn号列表
 def getDIMMList():
@@ -15,17 +23,15 @@ def getDIMMList():
         os.makedirs(SPLIT_DATA_PATH)
     snMap = {}
     
-    fileSet = mox.file.walk(DATA_SOURCE_PATH)
-    
-    # fileSet = os.walk(DATA_SOURCE_PATH)
+    fileSet = walkFileFn(DATA_SOURCE_PATH)
+
     
     for root ,_, files in fileSet:
         for f in files:
             if not f.endswith('csv'):
                 continue
-            with mox.file.File(os.path.join(root,f), 'rb') as fn:
-            
-            # with open(os.path.join(root,f), 'rb') as fn:
+            with openFileFn(os.path.join(root,f), 'rb') as fn:
+
                 
                 df = pd.read_csv(fn, sep=';') 
                 for index, row in df.iterrows():
@@ -51,9 +57,8 @@ def getLogInDIMMListMultipro(dimmList):
     
     fileList = []
     
-    fileSet = mox.file.walk(DATA_SOURCE_PATH)
-    
-    # fileSet = os.walk(DATA_SOURCE_PATH)
+    fileSet = walkFileFn(DATA_SOURCE_PATH)
+
     
     for root ,_, files in fileSet:
     
@@ -94,9 +99,7 @@ def getLogInFileList(q, fileList, dimmList):
     for f in fileList:
         if not f.endswith('csv'):
                 continue
-        with mox.file.File(f, 'rb') as fn:
-        
-        # with open(f, 'rb') as fn:
+        with openFileFn(f, 'rb') as fn:
             
             df = pd.read_csv(fn, sep=';')[['SN', 'Log']]
             df = df[df['SN'].isin(dimmList)] 
@@ -111,18 +114,15 @@ def getLogInFileList(q, fileList, dimmList):
 def getLogInDIMMList(dimmList):
     mergedDf =  pd.DataFrame()
     
-    fileSet = mox.file.walk(DATA_SOURCE_PATH)
-    
-    # fileSet = os.walk(DATA_SOURCE_PATH)
+    fileSet = walkFileFn(DATA_SOURCE_PATH)
+
     
     for root ,_, files in fileSet:
     
         for f in files:
             if not f.endswith('csv'):
                 continue
-            with mox.file.File(os.path.join(root,f), 'rb') as fn:
-            
-            # with open(os.path.join(root,f), 'rb') as fn:
+            with openFileFn(os.path.join(root,f), 'rb') as fn:
                 
                 df = pd.read_csv(fn, sep=';')[['SN', 'Log']]
                 df = df[df['SN'].isin(dimmList)] 
