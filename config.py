@@ -61,4 +61,4 @@ STATIC_TRAIN_ITEM = [ 'BiosADDDCEn',
                      'DimmId', 
                      'CpuInfo',
                      'Position']
-DYNAMIC_ITEM = ['BankId', 'BankgroupId', 'ChipId', 'ColumnId', 'Count', 'RankId','RowId', 'TimeStamp', 'Type']
+DYNAMIC_ITEM = ['RetryRdErrLogParity', 'BankId', 'BankgroupId', 'ChipId', 'ColumnId', 'Count', 'RankId','RowId', 'TimeStamp', 'Type']

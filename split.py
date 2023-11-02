@@ -7,7 +7,7 @@ from multiprocessing import Process, Queue
 import csv
 
 
-usingMox = True
+usingMox = False
 
 if usingMox:
     import moxing as mox
@@ -32,7 +32,6 @@ def getDIMMList():
                 continue
             with openFileFn(os.path.join(root,f), 'rb') as fn:
 
-                
                 df = pd.read_csv(fn, sep=';') 
                 for index, row in df.iterrows():
                     sn = row['SN']
@@ -45,6 +44,8 @@ def getDIMMList():
                         
                         staticDf = pd.DataFrame(columns=STATIC_ITEM)
                         staticRow = row[STATIC_ITEM]
+
+                        
                         staticRow['CpuInfo'] = getCpuType(staticRow['CpuInfo'])
 
                         staticDf.loc[0] = staticRow
@@ -54,14 +55,10 @@ def getDIMMList():
 
 # 多线程读取属于dimmList中的dimm数据，并聚合成单个dataframe
 def getLogInDIMMListMultipro(dimmList):
-    
     fileList = []
-    
     fileSet = walkFileFn(DATA_SOURCE_PATH)
-
     
     for root ,_, files in fileSet:
-    
         for f in files:
             if not f.endswith('csv'):
                 continue
@@ -133,17 +130,7 @@ def getLogInDIMMList(dimmList):
             mergedDf = pd.concat([mergedDf, df])
     return mergedDf
 
-# 主函数
-def main():
-    dimmList = getDIMMList()
-    print("dimm number = {}".format(len(dimmList)))
-    subListSize = math.ceil(len(dimmList) / BATCH_NUM)
-    for i in range(BATCH_NUM):
-        print("process batch {}".format(i))
-        subDimmList = dimmList[i*subListSize:(i + 1)*subListSize]
-        subDf = getLogInDIMMListMultipro(subDimmList)
-        splitByDIMM(subDf)
-        print("batch {} finished".format(i))
+
 
 # 解析logs   
 def genDynamicInfo(df):
@@ -189,7 +176,17 @@ def splitByDIMM(df):
         p.join()
         
 
-    
+# 主函数
+def main():
+    dimmList = getDIMMList()
+    print("dimm number = {}".format(len(dimmList)))
+    subListSize = math.ceil(len(dimmList) / BATCH_NUM)
+    for i in range(BATCH_NUM):
+        print("process batch {}".format(i))
+        subDimmList = dimmList[i*subListSize:(i + 1)*subListSize]
+        subDf = getLogInDIMMListMultipro(subDimmList)
+        splitByDIMM(subDf)
+        print("batch {} finished".format(i))
 print("split dimm")
 # 命令行输入
 DATA_SOURCE_PATH, BATCH_NUM = sys.argv[1], int(sys.argv[2])
