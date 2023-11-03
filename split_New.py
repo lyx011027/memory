@@ -8,7 +8,7 @@ import csv
 beforeMergePath = "beforeMerge"
 
 
-usingMox = False
+usingMox = True
 
 if usingMox:
     import moxing as mox
@@ -162,6 +162,7 @@ def mergeFun(q, count):
 def makeDir(DATA_SOURCE_PATH):
     snMap = set()
     sourceFileList = getSourceFileList(DATA_SOURCE_PATH)
+    print("error DIMM : {}".format(len(sourceFileList))
     for file in sourceFileList:
         with openFileFn(file, 'rb') as fn:
             df = pd.read_csv(fn, sep=';') 
