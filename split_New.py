@@ -162,7 +162,7 @@ def mergeFun(q, count):
 def makeDir(DATA_SOURCE_PATH):
     snMap = set()
     sourceFileList = getSourceFileList(DATA_SOURCE_PATH)
-    print("error DIMM : {}".format(len(sourceFileList))
+    
     for file in sourceFileList:
         with openFileFn(file, 'rb') as fn:
             df = pd.read_csv(fn, sep=';') 
@@ -175,7 +175,7 @@ def makeDir(DATA_SOURCE_PATH):
                         os.makedirs(targetPath)
 
 
-
+    print("log file : {}, error DIMM : {}".format(len(sourceFileList),len(snMap)))
 
 # 主函数
 def main():
